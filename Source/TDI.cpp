@@ -85,12 +85,10 @@ int main()
 	for (int i = 0; i <= imagenNormalizada.LastRow(); i++) {
 		for (int j = 0; j <= imagenNormalizada.LastCol(); j++) {
 			imagenNormalizada(i, j) = (imagen(i, j) - pBajo) * 255 / (pAlto - pBajo);
-
-			
 		}
 	}
 	
-
+	imagenNormalizada.Write("C:/Users/adolf/OneDrive/Desktop/PruebasTDI/CSgrisNormalizado.bmp");
 	//imagen.Write("C:/Users/adolf/OneDrive/Desktop/PruebasTDI/CSgris.bmp");
 	
 }
