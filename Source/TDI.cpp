@@ -31,17 +31,18 @@ void CalcularHistogramaAcumulado(int histograma[], int histogramaAcumulado[]) {
 	}
 }
 
+
+
 int main()
 {
+	//Lectura e inicialización de la imagen
+
 	C_Image imagen;
 
 	imagen.Read("C:/Users/adolf/OneDrive/Desktop/PruebasTDI/CSgris.bmp");
 
-	int totalPixeles = imagen.LastRow() * imagen.LastCol();
-
-	double umbralBajo = totalPixeles * 0.95;
-
-	double umbralAlto = totalPixeles * 0.05;
+	//Normalización con algoritmo de min y max con recorte de percentiles (Umbral del 5%)
+	//Calcular el histograma e histograma acumulado de la imagen
 
 	int histograma[256] = { 0 };
 	
@@ -51,8 +52,43 @@ int main()
 
 	CalcularHistogramaAcumulado(histograma, histogramaAcumulado);
 
-	RepresentarHistograma(histogramaAcumulado);
+	//Inicializar las variables y establecer los umbrales
 
+	int totalPixeles = imagen.LastRow() * imagen.LastCol();
+
+	double umbralBajo = totalPixeles * 0.95;
+
+	double umbralAlto = totalPixeles * 0.05;
+	
+	double pBajo;
+
+	for (int i = 0; i <= 255; i++) {
+		if (histogramaAcumulado[i] >= umbralBajo) {
+			double pBajo = i;
+			break;
+		}
+	}
+
+	double pAlto;
+
+	for (int i = 0; i <= 255; i++) {
+		if (histogramaAcumulado[i] >= umbralAlto) {
+			double pAlto = i;
+			break;
+		}
+	}
+	
+	//Aplicar algortimo min y max
+
+	C_Image imagenNormalizada;
+
+	for (int i = 0; i <= imagenNormalizada.LastRow(); i++) {
+		for (int j = 0; j <= imagenNormalizada.LastCol(); j++) {
+			imagenNormalizada(i, j) = (imagen(i, j) - pBajo) * 255 / (pAlto - pBajo);
+
+			
+		}
+	}
 	
 
 	//imagen.Write("C:/Users/adolf/OneDrive/Desktop/PruebasTDI/CSgris.bmp");
