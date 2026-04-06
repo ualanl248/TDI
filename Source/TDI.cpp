@@ -31,7 +31,37 @@ void CalcularHistogramaAcumulado(int histograma[], int histogramaAcumulado[]) {
 	}
 }
 
+void GenerarKernelGaussiano(C_Matrix & kernel, double sigma) {
+	int size = (int)(sigma * 6);
+	if (size % 2 == 0) {
+		size++;
+	}
+	int center = size / 2;
+	for (int i = 0; i < size; i++) {
+		for (int j = 0; j < size; j++) {
+			float x = i - center;
+			float y = j - center;
+			kernel(i, j) = exp(-(x * x + y * y) / (2 * sigma * sigma)) / (2 * M_PI * sigma * sigma);
+		}
+	}
+}
 
+void GenerarFiltroLineal(C_Image imagen, C_Matrix kernel, int N) {
+	C_Image imagenSuavizada(imagen.FirstRow(), imagen.LastRow(), imagen.FirstCol(), imagen.LastCol(), 0);
+	int margen = N/2;
+
+	for (int i = margen; i <= imagen.LastRow() - margen; i++) {
+		for (int j = imagen.FirstCol() + margen; j <= imagen.LastCol() - margen; j++) {
+			double valor = 0;
+			for (int k = -margen; k <= margen; k++) {
+				for (int l = -margen; l <= margen; l++) {
+					valor += imagen(i + k, j + l) * kernel(k + margen, l + margen);
+				}
+			}
+			imagenSuavizada(i, j) = (int)valor;
+		}
+	}
+}
 
 int main()
 {
@@ -56,9 +86,9 @@ int main()
 
 	int totalPixeles = imagen.LastRow() * imagen.LastCol();
 
-	double umbralBajo = totalPixeles * 0.05;
+	double umbralBajo = totalPixeles * 0.03;
 
-	double umbralAlto = totalPixeles * 0.98;
+	double umbralAlto = totalPixeles * 0.97;
 	
 	double pBajo = 0;
 
@@ -95,5 +125,11 @@ int main()
 	char ruta[256];
 	snprintf(ruta, sizeof(ruta), "C:/Users/adolf/OneDrive/Desktop/PruebasTDI/CSgrisNormalizado(%.0f%%).bmp", porcentaje);
 	imagenNormalizada.Write(ruta);
+
+	//Suavizado con filtro gaussiano
+	//Generación del kernel
+
+
+	
 	
 }
