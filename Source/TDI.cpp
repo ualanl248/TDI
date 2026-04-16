@@ -13,7 +13,10 @@
 static void CalcularHistograma(C_Image imagen, int histograma[]) {
 	for (int i = imagen.FirstRow(); i <= imagen.LastRow(); i++) {
 		for (int j = imagen.FirstCol(); j <= imagen.LastCol(); j++) {
-			histograma[(int)imagen(i, j)]++;
+			int valor = (int)imagen(i, j);
+			if (valor >= 0 && valor <= 255) {
+				histograma[valor]++;
+			}
 		}
 	}
 }
@@ -26,6 +29,7 @@ void RepresentarHistograma(int histograma[]) {
 }
 
 void CalcularHistogramaAcumulado(int histograma[], int histogramaAcumulado[]) {
+	histogramaAcumulado[0] = histograma[0];
 	for (int i = 1; i <= 255; i++) {
 		histogramaAcumulado[i] = histogramaAcumulado[i - 1] + histograma[i];
 	}
@@ -37,6 +41,9 @@ void GenerarKernelGaussiano(C_Matrix & kernel, double sigma) {
 		size++;
 	}
 	int center = size / 2;
+
+	kernel.Resize(0, size - 1, 0, size - 1, 0);
+
 	for (int i = 0; i < size; i++) {
 		for (int j = 0; j < size; j++) {
 			float x = i - center;
@@ -45,12 +52,11 @@ void GenerarKernelGaussiano(C_Matrix & kernel, double sigma) {
 		}
 	}
 }
-
 void GenerarFiltroLineal(C_Image imagen, C_Matrix kernel, int N) {
 	C_Image imagenSuavizada(imagen.FirstRow(), imagen.LastRow(), imagen.FirstCol(), imagen.LastCol(), 0);
-	int margen = N/2;
+	int margen = N / 2;
 
-	for (int i = margen; i <= imagen.LastRow() - margen; i++) {
+	for (int i = imagenSuavizada.FirstRow() + margen; i <= imagen.LastRow() - margen; i++) {
 		for (int j = imagen.FirstCol() + margen; j <= imagen.LastCol() - margen; j++) {
 			double valor = 0;
 			for (int k = -margen; k <= margen; k++) {
@@ -65,71 +71,53 @@ void GenerarFiltroLineal(C_Image imagen, C_Matrix kernel, int N) {
 
 int main()
 {
-	//Lectura e inicialización de la imagen
+    const char* rutaBase = "C:/Users/adolf/OneDrive/Desktop/PruebasTDI/";
+    const char* nombreImagen = "CS3";
+    char ruta[256];
 
-	C_Image imagen;
+    snprintf(ruta, sizeof(ruta), "%s%s.bmp", rutaBase, nombreImagen);
+    C_Image imagen;
+    imagen.Read(ruta);
+    imagen.Grey();
+    imagen.Write(ruta);
 
-	imagen.Read("C:/Users/adolf/OneDrive/Desktop/PruebasTDI/CSgris.bmp");
+    // Histograma
+    int histograma[256] = { 0 };
+    CalcularHistograma(imagen, histograma);
+    int histogramaAcumulado[256] = { 0 };
+    CalcularHistogramaAcumulado(histograma, histogramaAcumulado);
 
-	//Normalización con algoritmo de min y max con recorte de percentiles 
-	//Calcular el histograma e histograma acumulado de la imagen
+    // Establecer Umbrales
+    int totalPixeles = imagen.RowN() * imagen.ColN();
+    double umbralBajo = totalPixeles * 0.01;
+    double umbralAlto = totalPixeles * 0.99;
 
-	int histograma[256] = { 0 };
-	
-	CalcularHistograma(imagen, histograma);
+    double pBajo = 0;
+    for (int i = 0; i <= 255; i++) {
+        if (histogramaAcumulado[i] >= umbralBajo) { pBajo = i; break; }
+    }
+    double pAlto = 0;
+    for (int i = 0; i <= 255; i++) {
+        if (histogramaAcumulado[i] >= umbralAlto) { pAlto = i; break; }
+    }
 
-	int histogramaAcumulado[256] = { 0 };
+    for (int i = imagen.FirstRow(); i <= imagen.LastRow(); i++) {
+        for (int j = imagen.FirstCol(); j <= imagen.LastCol(); j++) {
+            double valor = (double)(imagen(i, j) - pBajo) * 255.0 / (double)(pAlto - pBajo);
+            if (valor < 0) valor = 0;
+            if (valor > 255) valor = 255;
+            imagen(i, j) = (int)valor;
+        }
+    }
 
-	CalcularHistogramaAcumulado(histograma, histogramaAcumulado);
+	// Suavizar con filtro gaussiano
+	double sigma = 1.5;
+    C_Matrix kernel;
+    GenerarKernelGaussiano(kernel, sigma);
+    GenerarFiltroLineal(imagen, kernel, 7);
 
-	//Inicializar las variables y establecer los umbrales
-
-	int totalPixeles = imagen.LastRow() * imagen.LastCol();
-
-	double umbralBajo = totalPixeles * 0.03;
-
-	double umbralAlto = totalPixeles * 0.97;
-	
-	double pBajo = 0;
-
-	for (int i = 0; i <= 255; i++) {
-		if (histogramaAcumulado[i] >= umbralBajo) {
-			pBajo = i;
-			break;
-		}
-	}
-
-	double pAlto = 0;
-
-	for (int i = 0; i <= 255; i++) {
-		if (histogramaAcumulado[i] >= umbralAlto) {
-			pAlto = i;
-			break;
-		}
-	}
-	
-	//Aplicar algortimo min y max
-
-	C_Image imagenNormalizada(imagen.FirstRow(), imagen.LastRow(),imagen.FirstCol(), imagen.LastCol());
-
-	for (int i = imagen.FirstRow(); i <= imagenNormalizada.LastRow(); i++) {
-		for (int j = imagen.FirstCol(); j <= imagenNormalizada.LastCol(); j++) {
-			double valor = (double)(imagen(i, j) - pBajo) * 255.0 / (double)(pAlto - pBajo);
-			if (valor < 0) valor = 0;
-			if (valor > 255) valor = 255;
-			imagenNormalizada(i, j) = (int)valor;
-		}
-	}
-	
-	double porcentaje = 100 - ((umbralAlto) / totalPixeles * 100.0);
-	char ruta[256];
-	snprintf(ruta, sizeof(ruta), "C:/Users/adolf/OneDrive/Desktop/PruebasTDI/CSgrisNormalizado(%.0f%%).bmp", porcentaje);
-	imagenNormalizada.Write(ruta);
-
-	//Suavizado con filtro gaussiano
-	//Generación del kernel
-
-
-	
-	
+	double porcentaje = 100 - (umbralAlto / totalPixeles * 100.0);
+	snprintf(ruta, sizeof(ruta), "% s % sNormalizado(% .0f % %)Suavizado(% .1f).bmp", rutaBase, nombreImagen, porcentaje, sigma);
+	imagen.Write(ruta);
+    
 }
