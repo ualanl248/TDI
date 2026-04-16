@@ -69,11 +69,21 @@ void GenerarFiltroLineal(C_Image imagen, C_Matrix kernel, int N) {
 	}
 }
 
+void Diferencia_Imagenes(C_Image imagen1, C_Image imagen2, C_Image & resultado) {
+	for (int i = resultado.FirstRow(); i <= resultado.LastRow(); i++) {
+		for (int j = resultado.FirstCol(); j <= resultado.LastCol(); j++) {
+			resultado(i, j) = abs(imagen1(i, j) - imagen2(i, j));
+		}
+	}
+}
+
 int main()
 {
     const char* rutaBase = "C:/Users/adolf/OneDrive/Desktop/PruebasTDI/";
     const char* nombreImagen = "CS3";
+	const char* nombreImagen2 = "CS32";
     char ruta[256];
+	char ruta2[256];
 
     snprintf(ruta, sizeof(ruta), "%s%s.bmp", rutaBase, nombreImagen);
     C_Image imagen;
@@ -81,11 +91,22 @@ int main()
     imagen.Grey();
     imagen.Write(ruta);
 
-    // Histograma
+	snprintf(ruta2, sizeof(ruta2), "%s%s.bmp", rutaBase, nombreImagen2);
+	C_Image imagen2;
+	imagen2.Read(ruta2);
+	imagen2.Grey();
+	imagen2.Write(ruta2);
+
+    // Histogramas
     int histograma[256] = { 0 };
     CalcularHistograma(imagen, histograma);
     int histogramaAcumulado[256] = { 0 };
     CalcularHistogramaAcumulado(histograma, histogramaAcumulado);
+
+	int histograma2[256] = { 0 };
+	CalcularHistograma(imagen2, histograma2);
+	int histogramaAcumulado2[256] = { 0 };
+	CalcularHistogramaAcumulado(histograma2, histogramaAcumulado2);
 
     // Establecer Umbrales
     int totalPixeles = imagen.RowN() * imagen.ColN();
@@ -110,14 +131,37 @@ int main()
         }
     }
 
+	for (int i = imagen2.FirstRow(); i <= imagen2.LastRow(); i++) {
+		for (int j = imagen2.FirstCol(); j <= imagen2.LastCol(); j++) {
+			double valor = (double)(imagen2(i, j) - pBajo) * 255.0 / (double)(pAlto - pBajo);
+			if (valor < 0) valor = 0;
+			if (valor > 255) valor = 255;
+			imagen2(i, j) = (int)valor;
+		}
+	}
+
 	// Suavizar con filtro gaussiano
 	double sigma = 1.5;
     C_Matrix kernel;
     GenerarKernelGaussiano(kernel, sigma);
     GenerarFiltroLineal(imagen, kernel, 7);
+	GenerarFiltroLineal(imagen2, kernel, 7);
 
 	double porcentaje = 100 - (umbralAlto / totalPixeles * 100.0);
 	snprintf(ruta, sizeof(ruta), "% s % sNormalizado(% .0f % %)Suavizado(% .1f).bmp", rutaBase, nombreImagen, porcentaje, sigma);
 	imagen.Write(ruta);
+	snprintf(ruta2, sizeof(ruta2), "% s % sNormalizado(% .0f % %)Suavizado(% .1f).bmp", rutaBase, nombreImagen2, porcentaje, sigma);
+	imagen2.Write(ruta2);
     
+	C_Image resultado(imagen.FirstRow(), imagen.LastRow(), imagen.FirstCol(), imagen.LastCol(), 0);
+	Diferencia_Imagenes(imagen, imagen2, resultado);
+	
+	if (resultado.Max() == 0) {
+		printf("No hay diferencia entre las imagenes\n");
+	}
+	else
+		{
+		printf("Las imagenes son diferentes");
+	}
+	return 0;
 }
