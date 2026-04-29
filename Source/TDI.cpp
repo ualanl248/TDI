@@ -77,27 +77,32 @@ void Diferencia_Imagenes(C_Image imagen1, C_Image imagen2, C_Image & resultado) 
 	}
 }
 
-int main()
-{
-    const char* rutaBase = "C:/Users/adolf/OneDrive/Desktop/PruebasTDI/";
-    const char* nombreImagen = "CS3";
-	const char* nombreImagen2 = "CS32";
-    char ruta[256];
+int main(){
+
+	//Leer de las imagenes
+	char nombreImagen[256];
+	char nombreImagen2[256];
+
+	printf("Introduce el nombre de la primera imagen (sin extension): ");
+	scanf_s("%s", nombreImagen, sizeof(nombreImagen));
+
+	printf("Introduce el nombre de la segunda imagen (sin extension): ");
+	scanf_s("%s", nombreImagen2, sizeof(nombreImagen2));
+
+	const char* rutaBase = "C:/Users/adolf/OneDrive/Desktop/PruebasTDI/";
+	char ruta[256];
 	char ruta2[256];
 
-    snprintf(ruta, sizeof(ruta), "%s%s.bmp", rutaBase, nombreImagen);
-    C_Image imagen;
-    imagen.Read(ruta);
-    imagen.Grey();
-    imagen.Write(ruta);
-
+	snprintf(ruta, sizeof(ruta), "%s%s.bmp", rutaBase, nombreImagen);
 	snprintf(ruta2, sizeof(ruta2), "%s%s.bmp", rutaBase, nombreImagen2);
+
+	C_Image imagen;
+	imagen.Read(ruta);
+
 	C_Image imagen2;
 	imagen2.Read(ruta2);
-	imagen2.Grey();
-	imagen2.Write(ruta2);
 
-    // Histogramas
+	// Histogramas e histogramas acumulados
     int histograma[256] = { 0 };
     CalcularHistograma(imagen, histograma);
     int histogramaAcumulado[256] = { 0 };
@@ -108,7 +113,7 @@ int main()
 	int histogramaAcumulado2[256] = { 0 };
 	CalcularHistogramaAcumulado(histograma2, histogramaAcumulado2);
 
-    // Establecer Umbrales
+	// Establecer Umbrales para el algoritmo de normalización dle histograma
     int totalPixeles = imagen.RowN() * imagen.ColN();
     double umbralBajo = totalPixeles * 0.01;
     double umbralAlto = totalPixeles * 0.99;
@@ -147,12 +152,14 @@ int main()
     GenerarFiltroLineal(imagen, kernel, 7);
 	GenerarFiltroLineal(imagen2, kernel, 7);
 
+	//Escribir imagenes preprocesada
 	double porcentaje = 100 - (umbralAlto / totalPixeles * 100.0);
 	snprintf(ruta, sizeof(ruta), "% s % sNormalizado(% .0f % %)Suavizado(% .1f).bmp", rutaBase, nombreImagen, porcentaje, sigma);
 	imagen.Write(ruta);
 	snprintf(ruta2, sizeof(ruta2), "% s % sNormalizado(% .0f % %)Suavizado(% .1f).bmp", rutaBase, nombreImagen2, porcentaje, sigma);
 	imagen2.Write(ruta2);
     
+	//Restar imágenes
 	C_Image resultado(imagen.FirstRow(), imagen.LastRow(), imagen.FirstCol(), imagen.LastCol(), 0);
 	Diferencia_Imagenes(imagen, imagen2, resultado);
 	
