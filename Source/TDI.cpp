@@ -1,6 +1,5 @@
 #include <math.h>
 #include <fcntl.h>
-
 #include <time.h>
 
 #include <C_General.hpp>
@@ -77,9 +76,60 @@ void Diferencia_Imagenes(C_Image imagen1, C_Image imagen2, C_Image & resultado) 
 	}
 }
 
+void BoundingBox(C_Image& resultado, int umbralPixel, int minPixeles, int maxPixeles) {
+	int minFila = resultado.LastRow();
+	int maxFila = resultado.FirstRow();
+	int minCol = resultado.LastCol();
+	int maxCol = resultado.FirstCol();
+	int pixelesDiferentes = 0;
+
+	for (int i = resultado.FirstRow(); i <= resultado.LastRow(); i++) {
+		for (int j = resultado.FirstCol(); j <= resultado.LastCol(); j++) {
+			if (resultado(i, j) >= umbralPixel) {
+				pixelesDiferentes++;
+				if (i < minFila) minFila = i;
+				if (i > maxFila) maxFila = i;
+				if (j < minCol)  minCol = j;
+				if (j > maxCol)  maxCol = j;
+			}
+		}
+	}
+
+	int alturaBB = maxFila - minFila;
+	int anchuraBB = maxCol - minCol;
+
+	printf("Pixels diferentes: %d\n", pixelesDiferentes);
+	printf("Altura BB: %d, Anchura BB: %d\n", alturaBB, anchuraBB);
+
+	
+	bool tamanoValido = (pixelesDiferentes >= minPixeles) &&
+		(pixelesDiferentes <= maxPixeles) &&
+		(alturaBB > 20) &&   
+		(anchuraBB > 10);   
+
+	if (tamanoValido) {
+		printf("PERSONA O ANIMAL DETECTADO\n");
+		printf("Bounding Box: filas(%d-%d) cols(%d-%d)\n",
+			minFila, maxFila, minCol, maxCol);
+
+		for (int i = minFila; i <= maxFila; i++) {
+			resultado(i, minCol) = 200;
+			resultado(i, maxCol) = 200;
+		}
+		for (int j = minCol; j <= maxCol; j++) {
+			resultado(minFila, j) = 200;
+			resultado(maxFila, j) = 200;
+		}
+	}
+	else {
+		printf("NO SE DETECTA PERSONA O ANIMAL\n");
+	}
+}
+
 int main(){
 
 	//Leer de las imagenes
+
 	char nombreImagen[256];
 	char nombreImagen2[256];
 
@@ -102,7 +152,7 @@ int main(){
 	C_Image imagen2;
 	imagen2.Read(ruta2);
 
-	// Histogramas e histogramas acumulados
+    // Histogramas
     int histograma[256] = { 0 };
     CalcularHistograma(imagen, histograma);
     int histogramaAcumulado[256] = { 0 };
@@ -113,7 +163,7 @@ int main(){
 	int histogramaAcumulado2[256] = { 0 };
 	CalcularHistogramaAcumulado(histograma2, histogramaAcumulado2);
 
-	// Establecer Umbrales para el algoritmo de normalización dle histograma
+    // Establecer Umbrales
     int totalPixeles = imagen.RowN() * imagen.ColN();
     double umbralBajo = totalPixeles * 0.01;
     double umbralAlto = totalPixeles * 0.99;
@@ -152,23 +202,34 @@ int main(){
     GenerarFiltroLineal(imagen, kernel, 7);
 	GenerarFiltroLineal(imagen2, kernel, 7);
 
-	//Escribir imagenes preprocesada
 	double porcentaje = 100 - (umbralAlto / totalPixeles * 100.0);
 	snprintf(ruta, sizeof(ruta), "% s % sNormalizado(% .0f % %)Suavizado(% .1f).bmp", rutaBase, nombreImagen, porcentaje, sigma);
 	imagen.Write(ruta);
 	snprintf(ruta2, sizeof(ruta2), "% s % sNormalizado(% .0f % %)Suavizado(% .1f).bmp", rutaBase, nombreImagen2, porcentaje, sigma);
 	imagen2.Write(ruta2);
     
-	//Restar imágenes
 	C_Image resultado(imagen.FirstRow(), imagen.LastRow(), imagen.FirstCol(), imagen.LastCol(), 0);
 	Diferencia_Imagenes(imagen, imagen2, resultado);
 	
+	// Detectar diferencias en la imagen
+	Diferencia_Imagenes(imagen, imagen2, resultado);
+
 	if (resultado.Max() == 0) {
 		printf("No hay diferencia entre las imagenes\n");
 	}
-	else
-		{
-		printf("Las imagenes son diferentes");
+	else {
+		printf("Las imagenes son diferentes\n");
+
+		// Determinar tamaño de la diferencia
+		int umbralPixel = 30;
+		int minPixeles = 300;
+		int maxPixeles = 50000;
+		BoundingBox(resultado, umbralPixel, minPixeles, maxPixeles);
+
+		snprintf(ruta, sizeof(ruta), "%sDiferencia.bmp", rutaBase);
+		resultado.Write(ruta);
 	}
+
 	return 0;
 }
+
