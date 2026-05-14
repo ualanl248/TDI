@@ -51,6 +51,8 @@ void GenerarKernelGaussiano(C_Matrix & kernel, double sigma) {
 		}
 	}
 }
+
+
 void GenerarFiltroLineal(C_Image imagen, C_Matrix kernel, int N) {
 	C_Image imagenSuavizada(imagen.FirstRow(), imagen.LastRow(), imagen.FirstCol(), imagen.LastCol(), 0);
 	int margen = N / 2;
@@ -98,7 +100,7 @@ void BoundingBox(C_Image& resultado, int umbralPixel, int minPixeles, int maxPix
 	int alturaBB = maxFila - minFila;
 	int anchuraBB = maxCol - minCol;
 
-	printf("Pixels diferentes: %d\n", pixelesDiferentes);
+	printf("Pixeles diferentes: %d\n", pixelesDiferentes);
 	printf("Altura BB: %d, Anchura BB: %d\n", alturaBB, anchuraBB);
 
 	
@@ -229,7 +231,6 @@ int main(){
 		snprintf(ruta, sizeof(ruta), "%sDiferencia.bmp", rutaBase);
 		resultado.Write(ruta);
 	}
-
 	return 0;
 }
 
