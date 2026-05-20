@@ -52,7 +52,6 @@ void GenerarKernelGaussiano(C_Matrix & kernel, double sigma) {
 	}
 }
 
-
 void GenerarFiltroLineal(C_Image imagen, C_Matrix kernel, int N) {
 	C_Image imagenSuavizada(imagen.FirstRow(), imagen.LastRow(), imagen.FirstCol(), imagen.LastCol(), 0);
 	int margen = N / 2;
@@ -170,6 +169,10 @@ int main(){
     double umbralBajo = totalPixeles * 0.01;
     double umbralAlto = totalPixeles * 0.99;
 
+	int totalPixeles2 = imagen2.RowN() * imagen2.ColN();
+	double umbralBajo2 = totalPixeles2 * 0.01;
+	double umbralAlto2 = totalPixeles2 * 0.99;
+
     double pBajo = 0;
     for (int i = 0; i <= 255; i++) {
         if (histogramaAcumulado[i] >= umbralBajo) { pBajo = i; break; }
@@ -178,6 +181,15 @@ int main(){
     for (int i = 0; i <= 255; i++) {
         if (histogramaAcumulado[i] >= umbralAlto) { pAlto = i; break; }
     }
+
+	double pBajo2 = 0;
+	for (int i = 0; i <= 255; i++) {
+		if (histogramaAcumulado2[i] >= umbralBajo2) { pBajo2 = i; break; }
+	}
+	double pAlto2 = 0;
+	for (int i = 0; i <= 255; i++) {
+		if (histogramaAcumulado2[i] >= umbralAlto2) { pAlto2 = i; break; }
+	}
 
     for (int i = imagen.FirstRow(); i <= imagen.LastRow(); i++) {
         for (int j = imagen.FirstCol(); j <= imagen.LastCol(); j++) {
@@ -190,7 +202,7 @@ int main(){
 
 	for (int i = imagen2.FirstRow(); i <= imagen2.LastRow(); i++) {
 		for (int j = imagen2.FirstCol(); j <= imagen2.LastCol(); j++) {
-			double valor = (double)(imagen2(i, j) - pBajo) * 255.0 / (double)(pAlto - pBajo);
+			double valor = (double)(imagen2(i, j) - pBajo2) * 255.0 / (double)(pAlto2 - pBajo2);
 			if (valor < 0) valor = 0;
 			if (valor > 255) valor = 255;
 			imagen2(i, j) = (int)valor;
